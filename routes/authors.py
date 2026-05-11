@@ -1,33 +1,32 @@
-from fastapi import APIRouter, Depends,HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection
 import pyodbc
 
 router = APIRouter(prefix="/authors", tags=["Authors"])
- 
- 
+
+
 # ─────────────────────────────────────────────
 # Pydantic Schemas (request / response bodies)
 # ─────────────────────────────────────────────
- 
+
 class AuthorCreate(BaseModel):
     name: str
     biography: Optional[str] = None
     royalty_percentage: Optional[float] = None
- 
- 
+
+
 class AuthorUpdate(BaseModel):
     name: Optional[str] = None
     biography: Optional[str] = None
     royalty_percentage: Optional[float] = None
- 
- 
+
+
 # ─────────────────────────────────────────────
 # Helper: map a raw DB row → dict
 # ─────────────────────────────────────────────
- 
+
 def row_to_author(row) -> dict:
     return {
         "author_id": row[0],
@@ -35,16 +34,15 @@ def row_to_author(row) -> dict:
         "biography": row[2],
         "royalty_percentage": row[3],
     }
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 1. CREATE — POST /authors/
 # ─────────────────────────────────────────────
- 
+
 @router.post("/", status_code=201)
-def create_author(author: AuthorCreate):
+def create_author(author: AuthorCreate, conn: pyodbc.Connection = Depends(get_db)):
     """Insert a new author into the AUTHOR table."""
-    conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -57,28 +55,24 @@ def create_author(author: AuthorCreate):
             author.royalty_percentage,
         )
         conn.commit()
- 
-        # Retrieve the generated primary key
+
         cursor.execute("SELECT SCOPE_IDENTITY()")
         new_id = int(cursor.fetchone()[0])
- 
+
         return {"message": "Author created successfully", "author_id": new_id}
- 
+
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 2. READ ALL — GET /authors/
 # ─────────────────────────────────────────────
- 
+
 @router.get("/")
-def get_all_authors():
+def get_all_authors(conn: pyodbc.Connection = Depends(get_db)):
     """Return every author in the database."""
-    conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -86,21 +80,18 @@ def get_all_authors():
         )
         rows = cursor.fetchall()
         return [row_to_author(r) for r in rows]
- 
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 3. READ ONE — GET /authors/{author_id}
 # ─────────────────────────────────────────────
- 
+
 @router.get("/{author_id}")
-def get_author(author_id: int):
+def get_author(author_id: int, conn: pyodbc.Connection = Depends(get_db)):
     """Return a single author by ID."""
-    conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -115,34 +106,29 @@ def get_author(author_id: int):
         if not row:
             raise HTTPException(status_code=404, detail="Author not found")
         return row_to_author(row)
- 
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 4. UPDATE — PUT /authors/{author_id}
 # ─────────────────────────────────────────────
- 
+
 @router.put("/{author_id}")
-def update_author(author_id: int, author: AuthorUpdate):
+def update_author(author_id: int, author: AuthorUpdate, conn: pyodbc.Connection = Depends(get_db)):
     """Update one or more fields of an existing author."""
-    conn = get_connection()
     try:
         cursor = conn.cursor()
- 
-        # Confirm the author exists first
+
         cursor.execute(
             "SELECT AUTHOR_ID FROM AUTHOR WHERE AUTHOR_ID = ?", author_id
         )
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Author not found")
- 
-        # Build SET clause dynamically from provided fields only
+
         fields, values = [], []
         if author.name is not None:
             fields.append("NAME = ?")
@@ -153,83 +139,67 @@ def update_author(author_id: int, author: AuthorUpdate):
         if author.royalty_percentage is not None:
             fields.append("ROYALTY_PERCENTAGE = ?")
             values.append(author.royalty_percentage)
- 
+
         if not fields:
             raise HTTPException(status_code=400, detail="No fields provided to update")
- 
+
         values.append(author_id)
         sql = f"UPDATE AUTHOR SET {', '.join(fields)} WHERE AUTHOR_ID = ?"
         cursor.execute(sql, *values)
         conn.commit()
- 
+
         return {"message": "Author updated successfully", "author_id": author_id}
- 
+
     except HTTPException:
         raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 5. DELETE — DELETE /authors/{author_id}
 # ─────────────────────────────────────────────
- 
+
 @router.delete("/{author_id}")
-def delete_author(author_id: int):
-    """
-    Delete an author and their entries in BOOK_AUTHOR.
-    BOOK_AUTHOR rows must be removed first due to the FK constraint.
-    """
-    conn = get_connection()
+def delete_author(author_id: int, conn: pyodbc.Connection = Depends(get_db)):
+    """Delete an author and their entries in BOOK_AUTHOR."""
     try:
         cursor = conn.cursor()
- 
-        # Confirm existence
+
         cursor.execute(
             "SELECT AUTHOR_ID FROM AUTHOR WHERE AUTHOR_ID = ?", author_id
         )
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Author not found")
- 
-        # Remove junction rows first (FK safety)
+
         cursor.execute(
             "DELETE FROM BOOK_AUTHOR WHERE AUTHOR_ID = ?", author_id
         )
-        # Then remove the author
         cursor.execute(
             "DELETE FROM AUTHOR WHERE AUTHOR_ID = ?", author_id
         )
         conn.commit()
- 
+
         return {"message": "Author deleted successfully", "author_id": author_id}
- 
+
     except HTTPException:
         raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 6. AUTHORS WITH BOOKS — GET /authors/{author_id}/books
 # ─────────────────────────────────────────────
- 
+
 @router.get("/{author_id}/books")
-def get_author_with_books(author_id: int):
-    """
-    Return an author together with all books they are linked to,
-    using a JOIN across AUTHOR → BOOK_AUTHOR → BOOK.
-    """
-    conn = get_connection()
+def get_author_with_books(author_id: int, conn: pyodbc.Connection = Depends(get_db)):
+    """Return an author together with all books they are linked to."""
     try:
         cursor = conn.cursor()
- 
-        # Author info
+
         cursor.execute(
             """
             SELECT AUTHOR_ID, NAME, BIOGRAPHY, ROYALTY_PERCENTAGE
@@ -241,10 +211,9 @@ def get_author_with_books(author_id: int):
         author_row = cursor.fetchone()
         if not author_row:
             raise HTTPException(status_code=404, detail="Author not found")
- 
+
         author_data = row_to_author(author_row)
- 
-        # All books for this author via the junction table
+
         cursor.execute(
             """
             SELECT B.ISBN, B.TITLE, B.GENRE, B.TARGET_AGE_GROUP
@@ -263,29 +232,23 @@ def get_author_with_books(author_id: int):
             }
             for r in cursor.fetchall()
         ]
- 
+
         author_data["books"] = books
         return author_data
- 
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # 7. ALL AUTHORS WITH THEIR BOOKS — GET /authors/with-books/all
 # ─────────────────────────────────────────────
- 
+
 @router.get("/with-books/all")
-def get_all_authors_with_books():
-    """
-    Return every author with their associated books in one call.
-    Uses a single JOIN query for efficiency.
-    """
-    conn = get_connection()
+def get_all_authors_with_books(conn: pyodbc.Connection = Depends(get_db)):
+    """Return every author with their associated books in one call."""
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -306,8 +269,7 @@ def get_all_authors_with_books():
             """
         )
         rows = cursor.fetchall()
- 
-        # Aggregate books per author
+
         authors: dict = {}
         for r in rows:
             aid = r[0]
@@ -319,7 +281,7 @@ def get_all_authors_with_books():
                     "royalty_percentage": r[3],
                     "books": [],
                 }
-            if r[4]:   # ISBN is not NULL → there is a linked book
+            if r[4]:
                 authors[aid]["books"].append(
                     {
                         "isbn": r[4],
@@ -328,10 +290,8 @@ def get_all_authors_with_books():
                         "target_age_group": r[7],
                     }
                 )
- 
+
         return list(authors.values())
- 
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()

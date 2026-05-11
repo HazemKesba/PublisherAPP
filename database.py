@@ -9,21 +9,10 @@ connection_string = (
     r'TrustServerCertificate=yes;'
 )
 
-db_connection = None
-
-def get_connection():
-    global db_connection
-    if db_connection is None or db_connection.closed:
-        db_connection = pyodbc.connect(connection_string)
-    return db_connection
-
-def close_connection():
-    global db_connection
-    if db_connection or not db_connection.closed:
-        db_connection.close()
-
 def get_db():
-    global db_connection
-    if db_connection is None or db_connection.closed:
-        db_connection = pyodbc.connect(connection_string)
-    yield db_connection
+    """Dependency: opens a fresh connection per request, closes it when done."""
+    conn = pyodbc.connect(connection_string)
+    try:
+        yield conn
+    finally:
+        conn.close()
