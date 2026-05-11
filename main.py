@@ -5,9 +5,9 @@ from routes import analytics, authors, books, formats, retail
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_connection
+    get_connection()
     yield
-    close_connection
+    close_connection()
 
 app = FastAPI(lifespan=lifespan)
 
