@@ -3,15 +3,13 @@ from pydantic import BaseModel
 from typing import List, Optional
 from database import get_db
 
-router = APIRouter()
+router = APIRouter(prefix="/retail", tags=["Retail"])
 
 class RetailPartner(BaseModel):
     partner_id: int
     type: Optional[str] = None
     name: Optional[str] = None
-@router.get("/")
-async def get(db = Depends(get_db)):
-    return { "message": "running" }
+
 # CREATE
 @router.post("/create")
 async def create_partner(partner: RetailPartner, db = Depends(get_db)):
