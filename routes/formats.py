@@ -62,10 +62,6 @@ def row_to_dict(row):
         "type":      row.TYPE,
     }
 
-def next_id(conn: pyodbc.Connection) -> int:
-    cursor = conn.cursor()
-    cursor.execute("SELECT ISNULL(MAX(FORMAT_ID), 0) + 1 FROM FORMAT")
-    return cursor.fetchone()[0]
 
 def book_exists(conn: pyodbc.Connection, isbn: str) -> bool:
     cursor = conn.cursor()
@@ -165,14 +161,14 @@ async def create_format(payload: FormatCreate, conn: pyodbc.Connection = Depends
             detail=f"A '{payload.type}' format already exists for this book"
         )
 
-    new_id = next_id(conn)
     cursor.execute(
-        "INSERT INTO FORMAT (FORMAT_ID, ISBN, COST, PRICE, TYPE) VALUES (?, ?, ?, ?, ?)",
-        new_id, payload.isbn, payload.cost, payload.price, payload.type
+        "INSERT INTO FORMAT (ISBN, COST, PRICE, TYPE) VALUES (?, ?, ?, ?)",
+        payload.isbn, payload.cost, payload.price, payload.type
     )
+    cursor.execute("SELECT SCOPE_IDENTITY()")
+    new_id = int(cursor.fetchone()[0])
     conn.commit()
     return {"message": "Format created successfully", "format_id": new_id}
-
 
 @router.put("/{format_id}")
 async def update_format(
