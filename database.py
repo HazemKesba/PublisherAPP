@@ -2,7 +2,7 @@ import pyodbc
 
 connection_string = (
     r'DRIVER={ODBC Driver 18 for SQL Server};'
-    r'SERVER=.\SQLEXPRESS;'
+    r'SERVER=Dodo-PC;'
     r'DATABASE=PublisherDB;'
     r'Trusted_Connection=yes;'
     r'Encrypt=yes;'

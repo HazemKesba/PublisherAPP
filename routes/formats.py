@@ -4,8 +4,7 @@ from pydantic import BaseModel, field_validator
 from decimal import Decimal
 import pyodbc
 
-router = APIRouter()
-
+router = APIRouter(prefix="/formats", tags=["Formats"])
 # ─── Schemas ────────────────────────────────────────────────────────────────
 
 VALID_TYPES = {"Hardcover", "Paperback", "E-book", "Audiobook"}

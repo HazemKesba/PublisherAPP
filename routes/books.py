@@ -5,7 +5,7 @@ import pyodbc
 
 from database import get_db
 
-router = APIRouter()
+router = APIRouter(prefix="/books", tags=["Books"])
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────

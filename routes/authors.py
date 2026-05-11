@@ -54,10 +54,12 @@ def create_author(author: AuthorCreate, conn: pyodbc.Connection = Depends(get_db
             author.biography,
             author.royalty_percentage,
         )
+
         conn.commit()
 
-        cursor.execute("SELECT SCOPE_IDENTITY()")
-        new_id = int(cursor.fetchone()[0])
+        cursor2 = conn.cursor()
+        cursor2.execute("SELECT @@IDENTITY")
+        new_id = int(cursor2.fetchone()[0])
 
         return {"message": "Author created successfully", "author_id": new_id}
 
