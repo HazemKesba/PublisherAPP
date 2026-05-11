@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from database import get_db
 import pyodbc
 
-router = APIRouter()
+router = router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
 @router.get("/")
