@@ -4,7 +4,7 @@ from pydantic import BaseModel, field_validator
 from decimal import Decimal
 import pyodbc
 
-router = APIRouter()
+router = APIRouter(prefix="/format", tags=["Formats"])
 
 # ─── Schemas ────────────────────────────────────────────────────────────────
 
