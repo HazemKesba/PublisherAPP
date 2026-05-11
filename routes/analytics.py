@@ -6,4 +6,4 @@ router = APIRouter()
 
 @router.get("/")
 async def get(conn: pyodbc.Connection = Depends(get_db)):
-    return { "message": conn }
+    return { "message": "running" }
