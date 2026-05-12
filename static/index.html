@@ -2,11 +2,727 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="styles.css" />
-        <title>Publisher Dashboard</title>
+        <title>Publisher Admin</title>
+        <style>
+            /* Keeping your requested CSS */
+            :root {
+                --primary: #1a2a6c;
+                --accent: #f2a343;
+                --bg: #f8f9fa;
+                --text: #333;
+                --danger: #e74c3c;
+            }
+            body {
+                font-family: "Inter", system-ui, sans-serif;
+                margin: 0;
+                background: var(--bg);
+                display: flex;
+                color: var(--text);
+            }
+            nav {
+                width: 260px;
+                height: 100vh;
+                background: var(--primary);
+                color: white;
+                position: fixed;
+                box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+                z-index: 100;
+            }
+            nav h2 {
+                padding: 20px;
+                font-size: 1.1rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: var(--accent);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            nav ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            nav li {
+                padding: 15px 25px;
+                cursor: pointer;
+                transition: 0.2s;
+                border-left: 4px solid transparent;
+            }
+            nav li:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            nav li.active {
+                background: rgba(255, 255, 255, 0.1);
+                border-left: 4px solid var(--accent);
+                font-weight: bold;
+            }
+            main {
+                margin-left: 260px;
+                padding: 40px;
+                width: calc(100% - 260px);
+            }
+            .section {
+                display: none;
+                animation: fadeIn 0.3s ease;
+            }
+            .section.active {
+                display: block;
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+                margin-bottom: 20px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th {
+                text-align: left;
+                padding: 12px;
+                background: #f1f3f9;
+                color: #555;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+            }
+            td {
+                padding: 12px;
+                border-bottom: 1px solid #f1f1f1;
+            }
+            .btn {
+                padding: 8px 14px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.85rem;
+                transition: 0.2s;
+            }
+            .btn-add {
+                background: var(--accent);
+                color: white;
+                margin-bottom: 20px;
+            }
+            .btn-edit {
+                background: #3498db;
+                color: white;
+                margin-right: 5px;
+            }
+            .btn-del {
+                background: var(--danger);
+                color: white;
+            }
+
+            /* Modal Styling */
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            .modal-content {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                width: 450px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            }
+            .modal-content h3 {
+                margin-top: 0;
+                color: var(--primary);
+            }
+            label {
+                display: block;
+                margin-top: 15px;
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+            input,
+            select,
+            textarea {
+                width: 100%;
+                padding: 10px;
+                margin-top: 5px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                box-sizing: border-box;
+            }
+            .modal-actions {
+                margin-top: 25px;
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+        </style>
     </head>
     <body>
-        <script src="app.js"></script>
+        <nav>
+            <h2>Publisher APP</h2>
+            <ul>
+                <li onclick="showSection('analytics')" id="nav-analytics">
+                    Analytics
+                </li>
+                <li onclick="showSection('books')" id="nav-books">Books</li>
+                <li onclick="showSection('authors')" id="nav-authors">
+                    Authors
+                </li>
+                <li onclick="showSection('formats')" id="nav-formats">
+                    Formats
+                </li>
+                <li onclick="showSection('partners')" id="nav-partners">
+                    Sales: Partners
+                </li>
+                <li onclick="showSection('orders')" id="nav-orders">
+                    Sales: Orders
+                </li>
+            </ul>
+        </nav>
+
+        <main>
+            <div id="analytics" class="section">
+                <h1>Bestsellers</h1>
+                <div class="card">
+                    <table id="analyticsTable">
+                        <thead>
+                            <tr>
+                                <th>ISBN</th>
+                                <th>Title</th>
+                                <th>Genre</th>
+                                <th>Qty</th>
+                                <th>Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="books" class="section">
+                <h1>Books Catalog</h1>
+                <button class="btn btn-add" onclick="openBookModal()">
+                    + New Book
+                </button>
+                <div class="card">
+                    <table id="booksTable">
+                        <thead>
+                            <tr>
+                                <th>ISBN</th>
+                                <th>Title</th>
+                                <th>Genre</th>
+                                <th>Target Group</th>
+                                <th>Authors</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="authors" class="section">
+                <h1>Authors</h1>
+                <button class="btn btn-add" onclick="openAuthorModal()">
+                    + New Author
+                </button>
+                <div class="card">
+                    <table id="authorsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Royalty</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="formats" class="section">
+                <h1>Formats & Pricing</h1>
+                <button class="btn btn-add" onclick="openFormatModal()">
+                    + New Format
+                </button>
+                <div class="card">
+                    <table id="formatsTable">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Margin</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="partners" class="section">
+                <h1>Retail Partners</h1>
+                <button class="btn btn-add" onclick="openPartnerModal()">
+                    + New Partner
+                </button>
+                <div class="card">
+                    <table id="partnersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="orders" class="section">
+                <h1>Order Management</h1>
+                <div class="card">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>Partner</th>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <div id="formModal" class="modal">
+            <div class="modal-content">
+                <h3 id="modalTitle">Form</h3>
+                <form id="activeForm">
+                    <div id="formFields"></div>
+                    <div class="modal-actions">
+                        <button
+                            type="button"
+                            class="btn"
+                            onclick="closeModal()"
+                        >
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-add">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            const API_BASE = "http://127.0.0.1:8000";
+
+            /**
+             * CORE API WRAPPER
+             * Handles Pydantic 422s, HTTP Exceptions, and Network Errors
+             */
+            async function api(path, method = "GET", body = null) {
+                const options = {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                };
+                if (body) options.body = JSON.stringify(body);
+
+                try {
+                    const res = await fetch(`${API_BASE}${path}`, options);
+
+                    // Handle Success (including 204 No Content)
+                    if (res.ok) {
+                        if (method !== "GET") {
+                            console.log(`✅ ${method} to ${path} successful`);
+                        }
+                        return res.status === 204 ? true : await res.json();
+                    }
+
+                    // Handle Errors (Non-2xx Responses)
+                    const errorData = await res.json();
+                    let errorMessage = "An unexpected error occurred.";
+
+                    if (res.status === 422 && Array.isArray(errorData.detail)) {
+                        // Flatten Pydantic/FastAPI validation errors
+                        errorMessage = errorData.detail
+                            .map(
+                                (err) =>
+                                    `• ${err.loc[err.loc.length - 1]}: ${err.msg}`,
+                            )
+                            .join("\n");
+                    } else if (errorData.detail) {
+                        // Handle custom detail strings or objects
+                        errorMessage =
+                            typeof errorData.detail === "string"
+                                ? errorData.detail
+                                : JSON.stringify(errorData.detail, null, 2);
+                    }
+
+                    alert(`⚠️ ${res.status} Error:\n\n${errorMessage}`);
+                    return null;
+                } catch (err) {
+                    // Handle Network/Connection Errors
+                    alert(
+                        `🚫 Connection Error:\nCould not connect to the server at ${API_BASE}. Make sure your FastAPI app is running!`,
+                    );
+                    console.error(err);
+                    return null;
+                }
+            }
+
+            // --- NAVIGATION & UI HELPERS ---
+
+            function showSection(id) {
+                document
+                    .querySelectorAll(".section, nav li")
+                    .forEach((el) => el.classList.remove("active"));
+                document.getElementById(id).classList.add("active");
+                document.getElementById("nav-" + id).classList.add("active");
+
+                // Dynamically call the loader function for the section
+                const loaderName = `load${id.charAt(0).toUpperCase() + id.slice(1)}`;
+                if (typeof window[loaderName] === "function")
+                    window[loaderName]();
+            }
+
+            function closeModal() {
+                document.getElementById("formModal").style.display = "none";
+                document.getElementById("activeForm").reset();
+            }
+
+            async function deleteItem(path, callback) {
+                if (
+                    confirm(
+                        "Are you sure you want to delete this? This action cannot be undone.",
+                    )
+                ) {
+                    const success = await api(path, "DELETE");
+                    if (success) callback();
+                }
+            }
+
+            // --- DATA LOADERS ---
+
+            async function loadAnalytics() {
+                const data = await api("/analytics/");
+                if (!data) return;
+                document.querySelector("#analyticsTable tbody").innerHTML = data
+                    .map(
+                        (r) => `
+        <tr>
+            <td><b>${r.isbn}</b></td>
+            <td>${r.title}</td>
+            <td>${r.genre}</td>
+            <td>${r.total_quantity}</td>
+            <td style="color:green; font-weight:bold">$${r.total_price.toFixed(2)}</td>
+        </tr>
+    `,
+                    )
+                    .join("");
+            }
+
+            async function loadBooks() {
+                const data = await api("/books/");
+                if (!data) return;
+                document.querySelector("#booksTable tbody").innerHTML =
+                    data.books
+                        .map(
+                            (b) => `
+        <tr>
+            <td>${b.isbn}</td>
+            <td>${b.title}</td>
+            <td>${b.genre}</td>
+            <td>${b.target_age_group || '<span style="color:#aaa">N/A</span>'}</td>
+            <td>${b.authors.map((a) => a.name).join(", ")}</td>
+            <td>
+                <button class="btn btn-edit" onclick="openBookModal('${b.isbn}')">Edit</button>
+                <button class="btn btn-del" onclick="deleteItem('/books/${b.isbn}', loadBooks)">Delete</button>
+            </td>
+        </tr>
+    `,
+                        )
+                        .join("");
+            }
+
+            async function loadAuthors() {
+                const data = await api("/authors/");
+                if (!data) return;
+                document.querySelector("#authorsTable tbody").innerHTML = data
+                    .map(
+                        (a) => `
+        <tr>
+            <td>${a.author_id}</td>
+            <td>${a.name}</td>
+            <td>${a.royalty_percentage}%</td>
+            <td>
+                <button class="btn btn-edit" onclick="openAuthorModal(${a.author_id})">Edit</button>
+                <button class="btn btn-del" onclick="deleteItem('/authors/${a.author_id}', loadAuthors)">Delete</button>
+            </td>
+        </tr>
+    `,
+                    )
+                    .join("");
+            }
+
+            async function loadFormats() {
+                const data = await api("/formats/");
+                if (!data) return;
+                document.querySelector("#formatsTable tbody").innerHTML = data
+                    .map(
+                        (f) => `
+        <tr>
+            <td>${f.book_title}</td>
+            <td><span style="background:#eee; padding:2px 6px; border-radius:4px;">${f.type}</span></td>
+            <td>$${f.price.toFixed(2)}</td>
+            <td style="color:${f.margin > 0 ? "green" : "red"}">$${f.margin.toFixed(2)}</td>
+            <td>
+                <button class="btn btn-edit" onclick="openFormatModal(${f.format_id})">Edit</button>
+                <button class="btn btn-del" onclick="deleteItem('/formats/${f.format_id}', loadFormats)">Delete</button>
+            </td>
+        </tr>
+    `,
+                    )
+                    .join("");
+            }
+
+            async function loadPartners() {
+                const data = await api("/retail/getall");
+                if (!data) return;
+                document.querySelector("#partnersTable tbody").innerHTML = data
+                    .map(
+                        (p) => `
+        <tr>
+            <td>${p.partner_id}</td>
+            <td>${p.name}</td>
+            <td>${p.type}</td>
+            <td>
+                <button class="btn btn-edit" onclick="openPartnerModal(${p.partner_id})">Edit</button>
+                <button class="btn btn-del" onclick="deleteItem('/retail/${p.partner_id}', loadPartners)">Delete</button>
+            </td>
+        </tr>
+    `,
+                    )
+                    .join("");
+            }
+
+            async function loadOrders() {
+                const data = await api("/retail/orders-report");
+                if (!data) return;
+                document.querySelector("#ordersTable tbody").innerHTML = data
+                    .map(
+                        (o) => `
+        <tr>
+            <td>${o.name}</td>
+            <td>#${o.order_id}</td>
+            <td>${new Date(o.date).toLocaleDateString()}</td>
+            <td>${o.qty} units</td>
+        </tr>
+    `,
+                    )
+                    .join("");
+            }
+
+            // --- MODAL & FORM LOGIC ---
+
+            async function openBookModal(isbn = null) {
+                const authors = await api("/authors/");
+                let book = isbn
+                    ? await api(`/books/${isbn}`)
+                    : {
+                          isbn: "",
+                          title: "",
+                          genre: "",
+                          target_age_group: "",
+                          authors: [],
+                      };
+                if (!book) return;
+
+                document.getElementById("modalTitle").innerText = isbn
+                    ? "Edit Book Details"
+                    : "Register New Book";
+                document.getElementById("formFields").innerHTML = `
+        <label>ISBN (Min 10 characters)</label>
+        <input id="f1" value="${book.isbn}" ${isbn ? "disabled" : ""} placeholder="e.g. 9780123456789">
+        <label>Book Title</label>
+        <input id="f2" value="${book.title}" placeholder="The Great Novel">
+        <label>Genre</label>
+        <input id="f3" value="${book.genre}" placeholder="Fiction">
+        <label>Target Age Group</label>
+        <input id="f_age" value="${book.target_age_group || ""}" placeholder="Adult">
+        <label>Contributors (Select Multiple with Ctrl/Cmd)</label>
+        <select id="f4" multiple size="5" style="height: 100px;">
+            ${authors.map((a) => `<option value="${a.author_id}" ${book.authors.some((ba) => ba.author_id == a.author_id) ? "selected" : ""}>${a.name}</option>`).join("")}
+        </select>
+    `;
+
+                document.getElementById("activeForm").onsubmit = async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        isbn: document.getElementById("f1").value,
+                        title: document.getElementById("f2").value,
+                        genre: document.getElementById("f3").value,
+                        target_age_group:
+                            document.getElementById("f_age").value || null,
+                        author_ids: Array.from(
+                            document.getElementById("f4").selectedOptions,
+                        ).map((o) => parseInt(o.value)),
+                    };
+                    const result = isbn
+                        ? await api(`/books/${isbn}`, "PATCH", payload)
+                        : await api("/books/", "POST", payload);
+                    if (result) {
+                        closeModal();
+                        loadBooks();
+                    }
+                };
+                document.getElementById("formModal").style.display = "flex";
+            }
+
+            async function openAuthorModal(id = null) {
+                let auth = id
+                    ? await api(`/authors/${id}`)
+                    : { name: "", biography: "", royalty_percentage: 10 };
+                if (!auth) return;
+
+                document.getElementById("modalTitle").innerText = id
+                    ? "Update Author Profile"
+                    : "Add New Author";
+                document.getElementById("formFields").innerHTML = `
+        <label>Full Name</label><input id="f1" value="${auth.name}">
+        <label>Biography</label><textarea id="f2" style="height:80px;">${auth.biography || ""}</textarea>
+        <label>Royalty %</label><input type="number" id="f3" value="${auth.royalty_percentage}">
+    `;
+                document.getElementById("activeForm").onsubmit = async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        name: document.getElementById("f1").value,
+                        biography: document.getElementById("f2").value,
+                        royalty_percentage: parseFloat(
+                            document.getElementById("f3").value,
+                        ),
+                    };
+                    const result = await api(
+                        id ? `/authors/${id}` : "/authors/",
+                        id ? "PUT" : "POST",
+                        payload,
+                    );
+                    if (result) {
+                        closeModal();
+                        loadAuthors();
+                    }
+                };
+                document.getElementById("formModal").style.display = "flex";
+            }
+
+            async function openFormatModal(id = null) {
+                const booksData = await api("/books/");
+                let fmt = id
+                    ? await api(`/formats/${id}`)
+                    : { isbn: "", type: "Paperback", cost: 0, price: 0 };
+                if (!fmt) return;
+
+                document.getElementById("modalTitle").innerText = id
+                    ? "Edit Pricing/Format"
+                    : "Add New Format";
+                document.getElementById("formFields").innerHTML = `
+        <label>Select Book</label>
+        <select id="f1" ${id ? "disabled" : ""}>
+            ${booksData.books.map((b) => `<option value="${b.isbn}" ${b.isbn == fmt.isbn ? "selected" : ""}>${b.title}</option>`).join("")}
+        </select>
+        <label>Format Type</label>
+        <select id="f2">
+            <option ${fmt.type === "Paperback" ? "selected" : ""}>Paperback</option>
+            <option ${fmt.type === "Hardcover" ? "selected" : ""}>Hardcover</option>
+            <option ${fmt.type === "E-book" ? "selected" : ""}>E-book</option>
+            <option ${fmt.type === "Audiobook" ? "selected" : ""}>Audiobook</option>
+        </select>
+        <label>Production Cost ($)</label><input type="number" id="f3" value="${fmt.cost}" step="0.01">
+        <label>Retail Price ($)</label><input type="number" id="f4" value="${fmt.price}" step="0.01">
+    `;
+                document.getElementById("activeForm").onsubmit = async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        isbn: document.getElementById("f1").value,
+                        type: document.getElementById("f2").value,
+                        cost: parseFloat(document.getElementById("f3").value),
+                        price: parseFloat(document.getElementById("f4").value),
+                    };
+                    const result = await api(
+                        id ? `/formats/${id}` : "/formats/",
+                        id ? "PUT" : "POST",
+                        payload,
+                    );
+                    if (result) {
+                        closeModal();
+                        loadFormats();
+                    }
+                };
+                document.getElementById("formModal").style.display = "flex";
+            }
+
+            async function openPartnerModal(id = null) {
+                let p = id
+                    ? (await api("/retail/getall")).find(
+                          (x) => x.partner_id == id,
+                      )
+                    : { name: "", type: "" };
+                if (id && !p) return;
+
+                document.getElementById("modalTitle").innerText = id
+                    ? "Modify Partner"
+                    : "Register Sales Partner";
+                document.getElementById("formFields").innerHTML = `
+        <label>Partner Name</label><input id="f1" value="${p.name}">
+        <label>Channel (e.g. Online, Retail, Library)</label><input id="f2" value="${p.type}">
+    `;
+                document.getElementById("activeForm").onsubmit = async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        name: document.getElementById("f1").value,
+                        type: document.getElementById("f2").value,
+                    };
+                    if (id) payload.partner_id = id;
+
+                    const result = await api(
+                        id ? `/retail/${id}` : "/retail/create",
+                        id ? "PUT" : "POST",
+                        payload,
+                    );
+                    if (result) {
+                        closeModal();
+                        loadPartners();
+                    }
+                };
+                document.getElementById("formModal").style.display = "flex";
+            }
+
+            // Initial Landing Page
+            window.onload = () => showSection("analytics");
+        </script>
     </body>
 </html>
