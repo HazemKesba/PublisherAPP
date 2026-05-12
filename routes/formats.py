@@ -140,34 +140,42 @@ async def get_formats_by_book(isbn: str, conn: pyodbc.Connection = Depends(get_d
     return [row_to_dict(r) for r in rows]
 
 
-@router.post("/", status_code=201)
-async def create_format(payload: FormatCreate, conn: pyodbc.Connection = Depends(get_db)):
+@router.post("/")
+async def create_format(format_data: FormatCreate, db = Depends(get_db)):
     """
     Add a new format for an existing book.
     A book cannot have two formats of the same type.
     """
-    if not book_exists(conn, payload.isbn):
-        raise HTTPException(status_code=404, detail=f"Book with ISBN '{payload.isbn}' not found")
+    try:
+        cursor = db.cursor()
+        
+        # Use the OUTPUT clause to get the ID back immediately
+        query = """
+            INSERT INTO FORMAT (ISBN, TYPE, COST, PRICE)
+            OUTPUT INSERTED.FORMAT_ID
+            VALUES (?, ?, ?, ?)
+        """
+        
+        cursor.execute(query, (
+            format_data.isbn, 
+            format_data.type, 
+            format_data.cost, 
+            format_data.price
+        ))
+        
+        # Now fetchone() will actually have the ID
+        row = cursor.fetchone()
+        if row:
+            new_id = int(row[0])
+            db.commit()
+            return {"message": "Format created", "format_id": new_id}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to retrieve new ID")
+            
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT 1 FROM FORMAT WHERE ISBN = ? AND TYPE = ?",
-        payload.isbn, payload.type
-    )
-    if cursor.fetchone():
-        raise HTTPException(
-            status_code=409,
-            detail=f"A '{payload.type}' format already exists for this book"
-        )
-
-    cursor.execute(
-        "INSERT INTO FORMAT (ISBN, COST, PRICE, TYPE) VALUES (?, ?, ?, ?)",
-        payload.isbn, payload.cost, payload.price, payload.type
-    )
-    cursor.execute("SELECT SCOPE_IDENTITY()")
-    new_id = int(cursor.fetchone()[0])
-    conn.commit()
-    return {"message": "Format created successfully", "format_id": new_id}
 
 @router.put("/{format_id}")
 async def update_format(

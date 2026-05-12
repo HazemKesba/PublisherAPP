@@ -6,7 +6,7 @@ from database import get_db
 router = APIRouter(prefix="/retail", tags=["Retail"])
 
 class RetailPartner(BaseModel):
-    partner_id: int
+    partner_id: Optional[int] = None
     type: Optional[str] = None
     name: Optional[str] = None
 
@@ -15,8 +15,8 @@ class RetailPartner(BaseModel):
 async def create_partner(partner: RetailPartner, db = Depends(get_db)):
     try:
         cursor = db.cursor()
-        query = "INSERT INTO RETAIL_PARTNER (PARTNER_ID, TYPE, NAME) VALUES (?, ?, ?)"
-        cursor.execute(query, (partner.partner_id, partner.type, partner.name))
+        query = "INSERT INTO RETAIL_PARTNER (TYPE, NAME) VALUES (?, ?)"
+        cursor.execute(query, (partner.type, partner.name))
         db.commit()
         return {"message": "Retail Partner inserted successfully"}
     except Exception as e:
